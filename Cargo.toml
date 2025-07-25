@@ -1,0 +1,9 @@
+[package]
+name = "wechat-backup"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Add any dependencies required for the project here, for example:
+# serde = { version = "1.0", features = ["derive"] }
+# tokio = { version = "1", features = ["full"] }
