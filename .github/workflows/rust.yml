@@ -1,0 +1,32 @@
+name: Build for Windows
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    # 指定在 Windows 环境中运行
+    runs-on: windows-latest
+
+    steps:
+    # 1. 检出代码
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # 2. 安装 Rust 工具链
+    - name: Install Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+
+    # 3. 构建 Release 版本
+    - name: Build release executable
+      run: cargo build --release --verbose
+
+    # 4. 运行测试
+    - name: Run tests
+      run: cargo test --verbose
