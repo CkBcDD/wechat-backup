@@ -9,6 +9,7 @@ A simple, fast command-line tool written in Rust to back up WeChat (PC version) 
 -   **Targeted Search**: Specifically looks for `Img` and `Vid` folders within WeChat's complex directory structure.
 -   **Simple & Fast**: Built with Rust for performance and reliability, with a minimal command-line interface.
 -   **Overwrite by Default**: Re-running the tool for the same month will overwrite the existing backup, ensuring it's always up-to-date.
+-   **Log Level Control**: Supports log level selection via `--verbose` and silent mode via `--silent`.
 
 ## Building from Source
 
@@ -32,16 +33,23 @@ The tool requires two main arguments: a source directory (`--from`) and a destin
 ### Command Syntax
 
 ```bash
-wechat-backup.exe --from <WECHAT_FILES_ROOT> --to <BACKUP_DESTINATION>
+wechat-backup.exe --from <WECHAT_FILES_ROOT> --to <BACKUP_DESTINATION> [--silent] [--verbose <LEVEL>]
 ```
 
 ### Arguments
 
 -   `--from <PATH>`: **(Required)** The root directory of your WeChat files. This is typically a folder named `xwechat_files` or similar, containing a subfolder with a long random name (e.g., `D:\Documents\xwechat_files\wxid_xxxxxxxxxxxxxx`).
 -   `--to <PATH>`: **(Required)** The directory where the generated `.zip` backup files will be saved.
--   `-s`, `--silent`: (Optional) Run in silent mode. No output will be printed to the console, except for critical errors.
+-   `-s`, `--silent`: (Optional) Run in silent mode. No output will be printed to the console, except for critical errors. Equivalent to log level NONE.
+-   `--verbose <LEVEL>`: (Optional) Set log output level. Available values:
+    -   `w`: Show warnings and errors.
+    -   `i`: Show info, warnings, and errors.
+    -   `d`: Show debug, info, warnings, and errors.
+    -   `t`: Show trace, debug, info, warnings, and errors.
 -   `-h`, `--help`: Display the help message with all available options.
 -   `-V`, `--version`: Display the version information.
+
+> `--silent` and `--verbose` are mutually exclusive.
 
 ### Example
 
@@ -50,7 +58,7 @@ Let's say your WeChat files are stored in `D:\MyDocs\xwechat_files\wxid_abcdef12
 You would run the following command:
 
 ```bash
-.\target\release\wechat-backup.exe --from "D:\MyDocs\xwechat_files\wxid_abcdef123456" --to "E:\Backups\WeChat"
+.\target\release\wechat-backup.exe --from "D:\MyDocs\xwechat_files\wxid_abcdef123456" --to "E:\Backups\WeChat" --verbose i
 ```
 
 If today is **July 25, 2025**, the tool will:
@@ -81,3 +89,7 @@ YYYY-MM_backup.zip
 ```
 
 **Note**: The tool backs up all files as-is, without attempting to decrypt them or change their file extensions.
+
+**Log Output Control**:  
+By default, only errors are printed.  
+Use `--verbose` to increase output detail, or `--silent` for no output.
