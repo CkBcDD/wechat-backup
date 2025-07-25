@@ -1,41 +1,83 @@
-# WeChat Backup Tool
+# WeChat Backup Utility
 
-This project is a Rust application designed to back up image and video data from WeChat on Windows. It provides a simple interface to manage and store your media files securely.
+A simple, fast command-line tool written in Rust to back up WeChat (PC version) image and video files. It automatically finds files from the current and previous months and archives them into organized ZIP files.
 
 ## Features
 
-- Backup images and videos from WeChat.
-- Easy-to-use command-line interface.
-- Efficient file handling and data management.
+-   **Automatic Monthly Backup**: Creates separate `.zip` archives for each month's data.
+-   **Smart Date Logic**: If run within the first 7 days of a month, it automatically backs up the previous month's data as well.
+-   **Targeted Search**: Specifically looks for `Img` and `Vid` folders within WeChat's complex directory structure.
+-   **Simple & Fast**: Built with Rust for performance and reliability, with a minimal command-line interface.
+-   **Overwrite by Default**: Re-running the tool for the same month will overwrite the existing backup, ensuring it's always up-to-date.
 
-## Getting Started
+## Building from Source
 
-To get started with the WeChat Backup Tool, follow these steps:
+First, ensure you have the Rust toolchain installed on your system. You can get it from [rustup.rs](https://rustup.rs/).
 
-1. **Clone the repository:**
-   ```
-   git clone https://github.com/yourusername/wechat-backup.git
-   cd wechat-backup
-   ```
-
-2. **Build the project:**
-   ```
-   cargo build
-   ```
-
-3. **Run the application:**
-   ```
-   cargo run
-   ```
+1.  **Clone the repository or download the source code.**
+2.  **Navigate to the project directory:**
+    ```bash
+    cd path\to\wechat-backup
+    ```
+3.  **Build the project in release mode:**
+    ```bash
+    cargo build --release
+    ```
+4.  The executable will be available at `target\release\wechat-backup.exe`.
 
 ## Usage
 
-After running the application, you will be prompted to specify the directory containing your WeChat media files. The tool will then back up the files to a designated location.
+The tool requires two main arguments: a source directory (`--from`) and a destination directory (`--to`).
 
-## Contributing
+### Command Syntax
 
-Contributions are welcome! If you have suggestions for improvements or new features, please open an issue or submit a pull request.
+```bash
+wechat-backup.exe --from <WECHAT_FILES_ROOT> --to <BACKUP_DESTINATION>
+```
 
-## License
+### Arguments
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+-   `--from <PATH>`: **(Required)** The root directory of your WeChat files. This is typically a folder named `xwechat_files` or similar, containing a subfolder with a long random name (e.g., `D:\Documents\xwechat_files\wxid_xxxxxxxxxxxxxx`).
+-   `--to <PATH>`: **(Required)** The directory where the generated `.zip` backup files will be saved.
+-   `-s`, `--silent`: (Optional) Run in silent mode. No output will be printed to the console, except for critical errors.
+-   `-h`, `--help`: Display the help message with all available options.
+-   `-V`, `--version`: Display the version information.
+
+### Example
+
+Let's say your WeChat files are stored in `D:\MyDocs\xwechat_files\wxid_abcdef123456` and you want to save backups to `E:\Backups\WeChat`.
+
+You would run the following command:
+
+```bash
+.\target\release\wechat-backup.exe --from "D:\MyDocs\xwechat_files\wxid_abcdef123456" --to "E:\Backups\WeChat"
+```
+
+If today is **July 25, 2025**, the tool will:
+1.  Look for image and video files from `2025-07`.
+2.  Create a file named `2025-07_backup.zip` in `E:\Backups\WeChat`.
+
+If today is **August 3, 2025** (within the first 7 days of the month), the tool will:
+1.  Create `2025-07_backup.zip` for the previous month's data.
+2.  Create `2025-08_backup.zip` for the current month's data.
+
+## How It Works
+
+The utility scans for files in the following specific paths within the `--from` directory:
+
+-   **Images**: `...\msg\attach\<32_char_hash_dir>\YYYY-MM\Img\`
+-   **Videos**: `...\msg\video\YYYY-MM\`
+
+It then packages all files found in these locations into a ZIP archive with the following structure:
+
+```
+YYYY-MM_backup.zip
+├── Img/
+│   ├── file1.dat
+│   └── file2.dat
+└── Vid/
+    ├── file3.dat
+    └── file4.dat
+```
+
+**Note**: The tool backs up all files as-is, without attempting to decrypt them or change their file extensions.
