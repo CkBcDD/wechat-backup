@@ -1,16 +1,15 @@
-name: Build for Windows
+name: Create Release
 
 on:
   push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  create-release:
     runs-on: windows-latest
 
     steps:
@@ -23,11 +22,10 @@ jobs:
     - name: Build release executable
       run: cargo build --release --verbose
 
-    - name: Run tests
-      run: cargo test --verbose
-
-    - name: Upload executable
-      uses: actions/upload-artifact@v4
+    # 使用 softprops/action-gh-release Action 来创建 Release
+    # 它会自动将编译好的文件附加到新的 Release 中
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
       with:
-        name: wechat-backup-windows
-        path: target/release/wechat-backup.exe
+        # 要附加到 Release 的文件路径
+        files: target/release/wechat-backup.exe
