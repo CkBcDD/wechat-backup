@@ -4,7 +4,7 @@ A simple, fast command-line tool written in Rust to back up WeChat (PC version) 
 
 ## Features
 
--   **Automatic Monthly Backup**: Creates separate `.zip` archives for each month's data.
+-   **Automatic Monthly Backup**: Creates separate `.tar.zst` archives for each month's data using Zstandard compression for better performance.
 -   **Smart Date Logic**: If run within the first 7 days of a month, it automatically backs up the previous month's data as well.
 -   **Targeted Search**: Specifically looks for `Img` and `Vid` folders within WeChat's complex directory structure.
 -   **Simple & Fast**: Built with Rust for performance and reliability, with a minimal command-line interface.
@@ -63,11 +63,11 @@ You would run the following command:
 
 If today is **July 25, 2025**, the tool will:
 1.  Look for image and video files from `2025-07`.
-2.  Create a file named `2025-07_backup.zip` in `E:\Backups\WeChat`.
+2.  Create a file named `2025-07_backup.tar.zst` in `E:\Backups\WeChat`.
 
 If today is **August 3, 2025** (within the first 7 days of the month), the tool will:
-1.  Create `2025-07_backup.zip` for the previous month's data.
-2.  Create `2025-08_backup.zip` for the current month's data.
+1.  Create `2025-07_backup.tar.zst` for the previous month's data.
+2.  Create `2025-08_backup.tar.zst` for the current month's data.
 
 ## How It Works
 
@@ -76,16 +76,17 @@ The utility scans for files in the following specific paths within the `--from` 
 -   **Images**: `...\msg\attach\<32_char_hash_dir>\YYYY-MM\Img\`
 -   **Videos**: `...\msg\video\YYYY-MM\`
 
-It then packages all files found in these locations into a ZIP archive with the following structure:
+It then packages all files found in these locations into a Zstandard-compressed TAR archive with the following structure:
 
 ```
-YYYY-MM_backup.zip
-├── Img/
-│   ├── file1.dat
-│   └── file2.dat
-└── Vid/
-    ├── file3.dat
-    └── file4.dat
+YYYY-MM_backup.tar.zst
+└── (tar archive containing)
+    ├── Img/
+    │   ├── file1.dat
+    │   └── file2.dat
+    └── Vid/
+        ├── file3.dat
+        └── file4.dat
 ```
 
 **Note**: The tool backs up all files as-is, without attempting to decrypt them or change their file extensions.

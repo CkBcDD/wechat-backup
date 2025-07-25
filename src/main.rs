@@ -1,12 +1,12 @@
 mod backup;
 mod cli;
-mod utils;
 
 use clap::Parser;
 use cli::{Cli, LogLevel};
 use log::{error, info};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // 1. 解析命令行参数
     let args = Cli::parse();
 
@@ -43,7 +43,7 @@ fn main() {
     info!("源目录: {:?}", args.from);
     info!("目标目录: {:?}", args.to);
 
-    if let Err(e) = backup::run(&args) {
+    if let Err(e) = backup::run(&args).await {
         error!("\n备份过程中发生错误: {}", e);
         std::process::exit(1);
     }

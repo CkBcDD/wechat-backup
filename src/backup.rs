@@ -1,14 +1,14 @@
 use crate::cli::Cli;
-use crate::utils;
+use async_compression::tokio::write::ZstdEncoder;
 use chrono::{Datelike, Local, Months, NaiveDate};
 use log::{debug, info, warn};
-use std::fs::File;
 use std::path::{Path, PathBuf};
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 use walkdir::WalkDir;
-use zip::write::{FileOptions, ZipWriter};
 
 /// 备份流程的主执行函数
-pub fn run(args: &Cli) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn run(args: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     let now = Local::now();
     let mut months_to_backup = vec![];
 
@@ -30,7 +30,7 @@ pub fn run(args: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     // 2. 为每个需要备份的月份执行具体流程
     for month_str in months_to_backup {
         info!("开始处理 {} 月的备份...", month_str);
-        if let Err(e) = process_backup_for_month(&args.from, &args.to, &month_str) {
+        if let Err(e) = process_backup_for_month(&args.from, &args.to, &month_str).await {
             // 在迭代中处理错误，而不是让整个程序失败
             warn!(
                 "处理 {} 月份时发生错误: {}。将继续处理下一个月份。",
@@ -43,7 +43,7 @@ pub fn run(args: &Cli) -> Result<(), Box<dyn std::error::Error>> {
 }
 
 /// 处理单个指定月份的备份流程
-fn process_backup_for_month(
+async fn process_backup_for_month(
     from_dir: &Path,
     to_dir: &Path,
     month: &str,
@@ -58,25 +58,30 @@ fn process_backup_for_month(
         return Ok(());
     }
 
-    // 4. 创建 ZIP 文件并准备写入
-    let zip_path = to_dir.join(format!("{}_backup.zip", month));
-    let zip_file = File::create(&zip_path)?;
-    let mut zip = ZipWriter::new(zip_file);
-    let options = FileOptions::default().compression_method(zip::CompressionMethod::Deflated);
+    // 4. 创建 .tar.zst 文件并准备写入
+    let archive_path = to_dir.join(format!("{}_backup.tar.zst", month));
+    let archive_file = File::create(&archive_path).await?;
+    let zstd_encoder = ZstdEncoder::new(archive_file);
+    let mut tar_builder = tokio_tar::Builder::new(zstd_encoder);
 
-    // 5. 将找到的文件添加到 ZIP 包
+    // 5. 将找到的文件添加到 tar 包
     // 添加图片文件
     for img_dir in &img_sources {
-        utils::add_files_to_zip(&mut zip, img_dir, "Img", options)?;
+        tar_builder
+            .append_dir_all("Img", img_dir)
+            .await?;
     }
     // 添加视频文件
     if vid_source.exists() {
         debug!("找到 Vid 源: {:?}", vid_source);
-        utils::add_files_to_zip(&mut zip, &vid_source, "Vid", options)?;
+        tar_builder
+            .append_dir_all("Vid", &vid_source)
+            .await?;
     }
 
-    zip.finish()?;
-    info!("成功创建备份文件: {:?}", zip_path);
+    let mut encoder = tar_builder.into_inner().await?;
+    encoder.shutdown().await?;
+    info!("成功创建备份文件: {:?}", archive_path);
     Ok(())
 }
 
