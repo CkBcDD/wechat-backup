@@ -1,5 +1,17 @@
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use std::path::PathBuf;
+
+#[derive(Copy, Clone, PartialEq, Eq, PartialOrd, Ord, ValueEnum, Debug)]
+pub enum LogLevel {
+    /// (W)arn: 只显示警告和错误
+    W,
+    /// (I)nfo: 显示信息、警告和错误
+    I,
+    /// (D)ebug: 显示调试信息及以上
+    D,
+    /// (T)race: 显示所有跟踪信息
+    T,
+}
 
 /// 一个简单的微信文件备份工具
 #[derive(Parser, Debug)]
@@ -14,10 +26,10 @@ pub struct Cli {
     pub to: PathBuf,
 
     /// 静默模式，程序将不会在控制台输出任何信息
-    #[arg(short, long, default_value_t = false)]
+    #[arg(short, long, default_value_t = false, conflicts_with = "verbose")]
     pub silent: bool,
 
-    /// 输出详细日志 (暂未实现)
+    /// 设置日志输出的详细级别 [可选值: W, I, D, T]
     #[arg(long, value_name = "LEVEL")]
-    pub verbose: Option<u8>,
+    pub verbose: Option<LogLevel>,
 }

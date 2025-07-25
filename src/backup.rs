@@ -1,6 +1,7 @@
 use crate::cli::Cli;
 use crate::utils;
 use chrono::{Datelike, Local, Months, NaiveDate};
+use log::{debug, info, warn};
 use std::fs::File;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
@@ -11,7 +12,7 @@ pub fn run(args: &Cli) -> Result<(), Box<dyn std::error::Error>> {
     let now = Local::now();
     let mut months_to_backup = vec![];
 
-    // 1. 根据“头七”规则，判断需要备份的月份
+    // 1. 根据规则，判断需要备份的月份
     let current_month_str = now.format("%Y-%m").to_string();
     months_to_backup.push(current_month_str);
 
@@ -22,18 +23,20 @@ pub fn run(args: &Cli) -> Result<(), Box<dyn std::error::Error>> {
         let last_month_date = first_day_of_current_month - Months::new(1);
         let last_month_str = last_month_date.format("%Y-%m").to_string();
 
-        if !args.silent {
-            println!("检测到当前为月初，将同时备份上个月: {}", last_month_str);
-        }
+        info!("检测到当前为月初，将同时备份上个月: {}", last_month_str);
         months_to_backup.push(last_month_str);
     }
 
     // 2. 为每个需要备份的月份执行具体流程
     for month_str in months_to_backup {
-        if !args.silent {
-            println!("开始处理 {} 月的备份...", month_str);
+        info!("开始处理 {} 月的备份...", month_str);
+        if let Err(e) = process_backup_for_month(&args.from, &args.to, &month_str) {
+            // 在迭代中处理错误，而不是让整个程序失败
+            warn!(
+                "处理 {} 月份时发生错误: {}。将继续处理下一个月份。",
+                month_str, e
+            );
         }
-        process_backup_for_month(&args.from, &args.to, &month_str, args.silent)?;
     }
 
     Ok(())
@@ -44,17 +47,14 @@ fn process_backup_for_month(
     from_dir: &Path,
     to_dir: &Path,
     month: &str,
-    silent: bool,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // 3. 查找源文件目录
-    let img_sources = find_img_sources(from_dir, month, silent);
+    let img_sources = find_img_sources(from_dir, month);
     let vid_source = from_dir.join("msg").join("video").join(month);
 
     // 如果两个来源都不存在，则跳过此月份
     if img_sources.is_empty() && !vid_source.exists() {
-        if !silent {
-            println!("未找到 {} 月的图片或视频文件，跳过。", month);
-        }
+        info!("在 {} 月未找到图片或视频文件，跳过。", month);
         return Ok(());
     }
 
@@ -71,21 +71,17 @@ fn process_backup_for_month(
     }
     // 添加视频文件
     if vid_source.exists() {
-        if !silent {
-            println!("找到 Vid 源: {:?}", vid_source);
-        }
+        debug!("找到 Vid 源: {:?}", vid_source);
         utils::add_files_to_zip(&mut zip, &vid_source, "Vid", options)?;
     }
 
     zip.finish()?;
-    if !silent {
-        println!("成功创建备份文件: {:?}", zip_path);
-    }
+    info!("成功创建备份文件: {:?}", zip_path);
     Ok(())
 }
 
 /// 在 `.../msg/attach/` 目录下查找所有符合月份条件的 Img 源目录
-fn find_img_sources(from_dir: &Path, month: &str, silent: bool) -> Vec<PathBuf> {
+fn find_img_sources(from_dir: &Path, month: &str) -> Vec<PathBuf> {
     let mut sources = Vec::new();
     let attach_dir = from_dir.join("msg").join("attach");
     if !attach_dir.is_dir() {
@@ -103,9 +99,7 @@ fn find_img_sources(from_dir: &Path, month: &str, silent: bool) -> Vec<PathBuf> 
             // 拼接并检查目标 Img 目录是否存在
             let img_path = path.join(month).join("Img");
             if img_path.is_dir() {
-                if !silent {
-                    println!("找到 Img 源: {:?}", img_path);
-                }
+                debug!("找到 Img 源: {:?}", img_path);
                 sources.push(img_path);
             }
         }
